@@ -45,6 +45,13 @@ post = Substack::Post.new(title: 'Draft Title', subtitle: 'Draft Subtitle', user
 post.paragraph('This is the first paragraph of the draft.')
 post.heading('This is a heading', level: 2)
 post.paragraph('This is another paragraph.')
+post.horizontal_rule
+post.captioned_image(attrs: { src: 'image_url', alt: 'Image description' })
+post.text('This is some additional text.')
+post.marks([{ type: 'bold' }, { type: 'italic' }])
+post.youtube('video_id')
+post.subscribe_with_caption(message: 'Subscribe for more updates!')
+
 
 draft = post.get_draft
 client.post_draft(draft)

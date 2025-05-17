@@ -21,8 +21,16 @@ Gem::Specification.new do |spec|
   spec.add_dependency "json", "~> 2.0"          
   spec.add_dependency "activesupport", "~> 6.1"
   spec.add_dependency "logger", "~> 1.5"
+  spec.add_dependency "faraday", "~> 2.7"
+  spec.add_dependency "faraday-multipart", "~> 1.0"
 
   # Development dependencies (if needed)
   spec.add_development_dependency "rake", "~> 13.0"
   spec.add_development_dependency "rspec", "~> 3.0"
+  spec.add_development_dependency "minitest", "~> 5.0"
+  spec.add_development_dependency "minitest-reporters", "~> 1.5"
+  spec.add_development_dependency "mocha", "~> 2.0"
+  spec.add_development_dependency "rdoc", "~> 6.5"
+  spec.add_development_dependency "yard", "~> 0.9.28"
+  spec.add_development_dependency "redcarpet", "~> 3.6" # For markdown formatting in YARD
 end

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>
+  File: README
+  
+    &mdash; Documentation by YARD 0.9.37
+  
+</title>
+
+  <link rel="stylesheet" href="css/style.css" type="text/css" />
+
+  <link rel="stylesheet" href="css/common.css" type="text/css" />
+
+<script type="text/javascript">
+  pathId = "README";
+  relpath = '';
+</script>
+
+
+  <script type="text/javascript" charset="utf-8" src="js/jquery.js"></script>
+
+  <script type="text/javascript" charset="utf-8" src="js/app.js"></script>
+
+
+  </head>
+  <body>
+    <div class="nav_wrap">
+      <iframe id="nav" src="file_list.html?1"></iframe>
+      <div id="resizer"></div>
+    </div>
+
+    <div id="main" tabindex="-1">
+      <div id="header">
+        <div id="menu">
+  
+    <a href="_index.html">Index</a> &raquo; 
+    <span class="title">File: README</span>
+  
+</div>
+
+        <div id="search">
+  
+    <a class="full_list_link" id="class_list_link"
+        href="class_list.html">
+
+        <svg width="24" height="24">
+          <rect x="0" y="4" width="24" height="4" rx="1" ry="1"></rect>
+          <rect x="0" y="12" width="24" height="4" rx="1" ry="1"></rect>
+          <rect x="0" y="20" width="24" height="4" rx="1" ry="1"></rect>
+        </svg>
+    </a>
+  
+</div>
+        <div class="clear"></div>
+      </div>
+
+      <div id="content"><div id='filecontents'><h1 id="substack-ruby-gem">Substack Ruby Gem</h1>
+
+<p>This is a reverse-engineered Ruby wrapper for the Substack API. Please note that this project is not officially supported by Substack and is in extremely early stages of development. As such, it is likely to be buggy and incomplete.</p>
+
+<h2 id="current-functionality">Current Functionality</h2>
+
+<p>This gem provides access to various Substack API endpoints including:</p>
+
+<ul>
+<li>Creating and publishing draft articles</li>
+<li>Accessing your following feed</li>
+<li>Reading and managing inbox notifications</li>
+<li>Working with Notes (Substack&#39;s Twitter-like feature)</li>
+<li>Uploading and attaching images</li>
+<li>Reacting to Notes (likes)</li>
+<li>Accessing user settings</li>
+</ul>
+
+<h2 id="installation">Installation</h2>
+
+<p>Add this line to your application&#39;s Gemfile:</p>
+
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_gem'>gem</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>substack</span><span class='tstring_end'>&#39;</span></span><span class='comma'>,</span> <span class='label'>git:</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>https://github.com/duartemartins/substack.git</span><span class='tstring_end'>&#39;</span></span>
+</code></pre>
+
+<p>And then execute:</p>
+
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_bundle'>bundle</span> <span class='id identifier rubyid_install'>install</span>
+</code></pre>
+
+<p>Or install it yourself as:</p>
+
+<pre class="code ruby"><code class="ruby">gem install specific_install
+gem specific_install -l https://github.com/duartemartins/substack.git
+</code></pre>
+
+<h2 id="usage">Usage</h2>
+
+<p>To use the gem, you can start an interactive Ruby session with:</p>
+
+<pre class="code ruby"><code class="ruby">irb -r substack
+</code></pre>
+
+<h3 id="authentication">Authentication</h3>
+
+<p>The first time you use the gem, you&#39;ll need to authenticate with your Substack account:</p>
+
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_client'>client</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Substack.html" title="Substack (module)">Substack</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Substack/Client.html" title="Substack::Client (class)">Client</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Substack/Client.html#initialize-instance_method" title="Substack::Client#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>email:</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>your_email</span><span class='tstring_end'>&#39;</span></span><span class='comma'>,</span> <span class='label'>password:</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>your_password</span><span class='tstring_end'>&#39;</span></span><span class='rparen'>)</span>
+</code></pre>
+
+<p>This will use Selenium to log in and save cookies to <code>~/.substack_cookies.yml</code>. For subsequent usage, you can just initialize the client:</p>
+
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_client'>client</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Substack.html" title="Substack (module)">Substack</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Substack/Client.html" title="Substack::Client (class)">Client</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Substack/Client.html#initialize-instance_method" title="Substack::Client#initialize (method)">new</a></span></span>
+</code></pre>
+
+<h3 id="working-with-posts">Working with Posts</h3>
+
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_require'>require</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>substack</span><span class='tstring_end'>&#39;</span></span>
+
+<span class='id identifier rubyid_client'>client</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Substack.html" title="Substack (module)">Substack</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Substack/Client.html" title="Substack::Client (class)">Client</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Substack/Client.html#initialize-instance_method" title="Substack::Client#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>email:</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>your_email</span><span class='tstring_end'>&#39;</span></span><span class='comma'>,</span> <span class='label'>password:</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>your_password</span><span class='tstring_end'>&#39;</span></span><span class='rparen'>)</span>
+<span class='id identifier rubyid_post'>post</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Substack.html" title="Substack (module)">Substack</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Substack/Post.html" title="Substack::Post (class)">Post</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Substack/Post.html#initialize-instance_method" title="Substack::Post#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>title:</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>Draft Title</span><span class='tstring_end'>&#39;</span></span><span class='comma'>,</span> <span class='label'>subtitle:</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>Draft Subtitle</span><span class='tstring_end'>&#39;</span></span><span class='comma'>,</span> <span class='label'>user_id:</span> <span class='id identifier rubyid_client'>client</span><span class='period'>.</span><span class='id identifier rubyid_get_user_id'>get_user_id</span><span class='rparen'>)</span>
+<span class='id identifier rubyid_post'>post</span><span class='period'>.</span><span class='id identifier rubyid_paragraph'>paragraph</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>This is the first paragraph of the draft.</span><span class='tstring_end'>&#39;</span></span><span class='rparen'>)</span>
+<span class='id identifier rubyid_post'>post</span><span class='period'>.</span><span class='id identifier rubyid_heading'>heading</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>This is a heading</span><span class='tstring_end'>&#39;</span></span><span class='comma'>,</span> <span class='label'>level:</span> <span class='int'>2</span><span class='rparen'>)</span>
+<span class='id identifier rubyid_post'>post</span><span class='period'>.</span><span class='id identifier rubyid_paragraph'>paragraph</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>This is another paragraph.</span><span class='tstring_end'>&#39;</span></span><span class='rparen'>)</span>
+<span class='id identifier rubyid_post'>post</span><span class='period'>.</span><span class='id identifier rubyid_horizontal_rule'>horizontal_rule</span>
+<span class='id identifier rubyid_post'>post</span><span class='period'>.</span><span class='id identifier rubyid_captioned_image'>captioned_image</span><span class='lparen'>(</span><span class='label'>attrs:</span> <span class='lbrace'>{</span> <span class='label'>src:</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>image_url</span><span class='tstring_end'>&#39;</span></span><span class='comma'>,</span> <span class='label'>alt:</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>Image description</span><span class='tstring_end'>&#39;</span></span> <span class='rbrace'>}</span><span class='rparen'>)</span>
+<span class='id identifier rubyid_post'>post</span><span class='period'>.</span><span class='id identifier rubyid_text'>text</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>This is some additional text.</span><span class='tstring_end'>&#39;</span></span><span class='rparen'>)</span>
+<span class='id identifier rubyid_post'>post</span><span class='period'>.</span><span class='id identifier rubyid_marks'>marks</span><span class='lparen'>(</span><span class='lbracket'>[</span><span class='lbrace'>{</span> <span class='label'>type:</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>bold</span><span class='tstring_end'>&#39;</span></span> <span class='rbrace'>}</span><span class='comma'>,</span> <span class='lbrace'>{</span> <span class='label'>type:</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>italic</span><span class='tstring_end'>&#39;</span></span> <span class='rbrace'>}</span><span class='rbracket'>]</span><span class='rparen'>)</span>
+<span class='id identifier rubyid_post'>post</span><span class='period'>.</span><span class='id identifier rubyid_youtube'>youtube</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>video_id</span><span class='tstring_end'>&#39;</span></span><span class='rparen'>)</span>
+<span class='id identifier rubyid_post'>post</span><span class='period'>.</span><span class='id identifier rubyid_subscribe_with_caption'>subscribe_with_caption</span><span class='lparen'>(</span><span class='label'>message:</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>Subscribe for more updates!</span><span class='tstring_end'>&#39;</span></span><span class='rparen'>)</span>
+
+<span class='id identifier rubyid_draft'>draft</span> <span class='op'>=</span> <span class='id identifier rubyid_post'>post</span><span class='period'>.</span><span class='id identifier rubyid_get_draft'>get_draft</span>
+<span class='id identifier rubyid_client'>client</span><span class='period'>.</span><span class='id identifier rubyid_post_draft'>post_draft</span><span class='lparen'>(</span><span class='id identifier rubyid_draft'>draft</span><span class='rparen'>)</span>
+</code></pre>
+
+<h3 id="working-with-notes">Working with Notes</h3>
+
+<p>Notes are Substack&#39;s Twitter-like feature. You can create and interact with them:</p>
+
+<pre class="code ruby"><code class="ruby"><span class='comment'># Post a simple note
+</span><span class='id identifier rubyid_client'>client</span><span class='period'>.</span><span class='id identifier rubyid_post_note'>post_note</span><span class='lparen'>(</span><span class='label'>text:</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>Hello world! This is my first note on Substack.</span><span class='tstring_end'>&#39;</span></span><span class='rparen'>)</span>
+
+<span class='comment'># Post a note with an image from a URL
+</span><span class='id identifier rubyid_client'>client</span><span class='period'>.</span><span class='id identifier rubyid_post_note_with_image'>post_note_with_image</span><span class='lparen'>(</span>
+  <span class='label'>text:</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>Check out this cool image!</span><span class='tstring_end'>&#39;</span></span><span class='comma'>,</span>
+  <span class='label'>image_url:</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>https://example.com/image.jpg</span><span class='tstring_end'>&#39;</span></span>
+<span class='rparen'>)</span>
+
+<span class='comment'># Upload a local image and post a note with it
+</span><span class='id identifier rubyid_client'>client</span><span class='period'>.</span><span class='id identifier rubyid_post_note_with_local_image'>post_note_with_local_image</span><span class='lparen'>(</span>
+  <span class='label'>text:</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>I just took this photo!</span><span class='tstring_end'>&#39;</span></span><span class='comma'>,</span>
+  <span class='label'>image_path:</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>/path/to/local/image.jpg</span><span class='tstring_end'>&#39;</span></span>
+<span class='rparen'>)</span>
+
+<span class='comment'># React to a note (like it)
+</span><span class='id identifier rubyid_client'>client</span><span class='period'>.</span><span class='id identifier rubyid_react_to_note'>react_to_note</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>note_id</span><span class='tstring_end'>&#39;</span></span><span class='rparen'>)</span>
+</code></pre>
+
+<h3 id="accessing-your-feed-and-inbox">Accessing Your Feed and Inbox</h3>
+
+<pre class="code ruby"><code class="ruby"><span class='comment'># Get your following feed
+</span><span class='id identifier rubyid_feed'>feed</span> <span class='op'>=</span> <span class='id identifier rubyid_client'>client</span><span class='period'>.</span><span class='id identifier rubyid_following_feed'>following_feed</span><span class='lparen'>(</span><span class='label'>page:</span> <span class='int'>1</span><span class='comma'>,</span> <span class='label'>limit:</span> <span class='int'>25</span><span class='rparen'>)</span>
+
+<span class='comment'># Get your inbox notifications
+</span><span class='id identifier rubyid_notifications'>notifications</span> <span class='op'>=</span> <span class='id identifier rubyid_client'>client</span><span class='period'>.</span><span class='id identifier rubyid_inbox_top'>inbox_top</span>
+
+<span class='comment'># Mark notifications as seen
+</span><span class='id identifier rubyid_client'>client</span><span class='period'>.</span><span class='id identifier rubyid_mark_inbox_seen'>mark_inbox_seen</span><span class='lparen'>(</span><span class='lbracket'>[</span><span class='id identifier rubyid_notification_id1'>notification_id1</span><span class='comma'>,</span> <span class='id identifier rubyid_notification_id2'>notification_id2</span><span class='rbracket'>]</span><span class='rparen'>)</span>
+
+<span class='comment'># Check unread message count
+</span><span class='id identifier rubyid_unread'>unread</span> <span class='op'>=</span> <span class='id identifier rubyid_client'>client</span><span class='period'>.</span><span class='id identifier rubyid_unread_count'>unread_count</span>
+</code></pre>
+
+<h3 id="accessing-public-endpoints">Accessing Public Endpoints</h3>
+
+<pre class="code ruby"><code class="ruby"><span class='comment'># Get posts from a publication
+</span><span class='id identifier rubyid_posts'>posts</span> <span class='op'>=</span> <span class='id identifier rubyid_client'>client</span><span class='period'>.</span><span class='id identifier rubyid_publication_posts'>publication_posts</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>substackpub</span><span class='tstring_end'>&#39;</span></span><span class='comma'>,</span> <span class='label'>limit:</span> <span class='int'>10</span><span class='comma'>,</span> <span class='label'>offset:</span> <span class='int'>0</span><span class='rparen'>)</span>
+</code></pre>
+
+<h2 id="error-handling">Error Handling</h2>
+
+<p>The gem provides several error classes to help you handle different scenarios:</p>
+
+<pre class="code ruby"><code class="ruby"><span class='kw'>begin</span>
+  <span class='id identifier rubyid_client'>client</span><span class='period'>.</span><span class='id identifier rubyid_post_note'>post_note</span><span class='lparen'>(</span><span class='label'>text:</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>My new note</span><span class='tstring_end'>&#39;</span></span><span class='rparen'>)</span>
+<span class='kw'>rescue</span> <span class='const'><span class='object_link'><a href="Substack.html" title="Substack (module)">Substack</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Substack/AuthenticationError.html" title="Substack::AuthenticationError (class)">AuthenticationError</a></span></span>
+  <span class='comment'># Handle authentication issues
+</span><span class='kw'>rescue</span> <span class='const'><span class='object_link'><a href="Substack.html" title="Substack (module)">Substack</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Substack/RateLimitError.html" title="Substack::RateLimitError (class)">RateLimitError</a></span></span>
+  <span class='comment'># Handle rate limiting
+</span><span class='kw'>rescue</span> <span class='const'><span class='object_link'><a href="Substack.html" title="Substack (module)">Substack</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Substack/ValidationError.html" title="Substack::ValidationError (class)">ValidationError</a></span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_e'>e</span>
+  <span class='comment'># Handle validation errors
+</span>  <span class='id identifier rubyid_puts'>puts</span> <span class='id identifier rubyid_e'>e</span><span class='period'>.</span><span class='id identifier rubyid_error_details'>error_details</span>
+<span class='kw'>rescue</span> <span class='const'><span class='object_link'><a href="Substack.html" title="Substack (module)">Substack</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Substack/APIError.html" title="Substack::APIError (class)">APIError</a></span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_e'>e</span>
+  <span class='comment'># Handle general API errors
+</span>  <span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Status code: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_e'>e</span><span class='period'>.</span><span class='id identifier rubyid_status'>status</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+<span class='kw'>end</span>
+</code></pre>
+
+<h2 id="documentation">Documentation</h2>
+
+<p>This gem is documented using RDoc and YARD. You can generate the documentation by running:</p>
+
+<pre class="code bash"><code class="bash"># Generate RDoc documentation
+rake rdoc
+
+# Open the documentation in your browser
+rake docs_and_open
+
+# If you have YARD installed
+yard doc
+</code></pre>
+
+<p>For more information about the documentation, see the <code>DOCUMENTATION.md</code> file.</p>
+
+<h2 id="contributing">Contributing</h2>
+
+<p>Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.</p>
+
+<h2 id="license">License</h2>
+
+<p>This project is licensed under the Apache License 2.0. See the LICENSE file for details.</p>
+</div></div>
+
+      <div id="footer">
+  Generated on Sat May 17 12:28:23 2025 by
+  <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.9.37 (ruby-3.3.0).
+</div>
+
+    </div>
+  </body>
+</html>

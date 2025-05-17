@@ -1,9 +1,46 @@
 # lib/substack_api/post.rb
+require 'json'
 
 module Substack
+  # = Post Class
+  #
+  # The Post class provides methods for building a draft post on Substack. It allows
+  # for adding various types of content including paragraphs, headings, images, and more.
+  #
+  # == Example Usage
+  #
+  #   client = Substack::Client.new
+  #   post = Substack::Post.new(
+  #     title: 'My First Post',
+  #     subtitle: 'A test post',
+  #     user_id: client.get_user_id
+  #   )
+  #
+  #   post.paragraph('This is a paragraph.')
+  #   post.heading('This is a heading', level: 2)
+  #   post.horizontal_rule
+  #   post.captioned_image(attrs: { src: 'image_url', alt: 'Image description' })
+  #
+  #   client.post_draft(post.get_draft)
+  #
   class Post
+    # @return [String] The title of the draft post
+    # @return [String] The subtitle of the draft post
+    # @return [Hash] The JSON body of the draft post
+    # @return [Array<Hash>] Authors of the post
+    # @return [String] Audience setting (e.g., "everyone", "only_paid", etc.)
+    # @return [Integer, nil] Section ID for the post
+    # @return [String] Comment permissions
     attr_accessor :draft_title, :draft_subtitle, :draft_body, :draft_bylines, :audience, :draft_section_id, :write_comment_permissions
 
+    # Initialize a new draft post
+    #
+    # @param title [String] The post title
+    # @param subtitle [String] The post subtitle
+    # @param user_id [Integer, #to_i] The ID of the author
+    # @param audience [String] The audience for the post ("everyone" by default)
+    # @param write_comment_permissions [String, nil] Comment permissions (defaults to audience setting)
+    # @raise [RuntimeError] If user_id is invalid
     def initialize(title:, subtitle:, user_id:, audience: "everyone", write_comment_permissions: nil)
       @draft_title = title
       @draft_subtitle = subtitle
@@ -19,6 +56,11 @@ module Substack
       @write_comment_permissions = write_comment_permissions || @audience
     end
 
+    # Validate and convert user ID
+    #
+    # @param user_id [Integer, #to_i] The user ID to validate
+    # @return [Integer] The validated user ID
+    # @raise [RuntimeError] If user_id is invalid
     def validate_user_id(user_id)
       if user_id.respond_to?(:to_i)
         user_id = user_id.to_i
@@ -29,12 +71,24 @@ module Substack
       end
     end
 
+    # Set the section for the post
+    #
+    # @param name [String] The name of the section
+    # @param sections [Array<Hash>] List of available sections
+    # @raise [RuntimeError] If the section doesn't exist
     def set_section(name, sections)
       section = sections.find { |s| s["name"] == name }
       raise "SectionNotExistsException: #{name}" unless section
       @draft_section_id = section["id"]
     end
 
+    # Add a generic item to the post
+    #
+    # @param item [Hash] The item to add
+    # @option item [String] :type The type of item (paragraph, heading, etc.)
+    # @option item [String] :content The content text
+    # @option item [Hash] :attrs Additional attributes
+    # @option item [Integer] :level Heading level (if type is heading)
     def add(item)
       type = item[:type]
       content = item[:content]
@@ -52,28 +106,57 @@ module Substack
       @draft_body[:content] << new_item
     end
 
+    # Add a paragraph to the post
+    #
+    # @param content [String] The paragraph text
+    # @return [void]
     def paragraph(content)
       add(type: "paragraph", content: content)
     end
 
+    # Add a heading to the post
+    #
+    # @param content [String] The heading text
+    # @param level [Integer] The heading level (1-6)
+    # @return [void]
     def heading(content, level: 1)
       add(type: "heading", content: content, level: level)
     end
 
+    # Add a horizontal rule to the post
+    #
+    # @return [void]
     def horizontal_rule
       add(type: "horizontal_rule")
     end
 
+    # Add a captioned image to the post
+    #
+    # @param attrs [Hash] Image attributes
+    # @option attrs [String] :src Image URL
+    # @option attrs [String] :alt Alt text
+    # @option attrs [String] :caption Image caption
+    # @return [void]
     def captioned_image(attrs)
       add(type: "captionedImage", attrs: attrs)
     end
 
+    # Add text to the last content item
+    #
+    # @param value [String] The text to add
+    # @return [void]
     def text(value)
       last_item = @draft_body[:content].last
       last_item[:content] ||= []
       last_item[:content] << { type: "text", text: value }
     end
 
+    # Add formatting marks to the last text item
+    #
+    # @param marks [Array<Hash>] The marks to add
+    # @option marks [String] :type The type of mark (bold, italic, link, etc.)
+    # @option marks [String] :href URL for link marks
+    # @return [void]
     def marks(marks)
       last_item = @draft_body[:content].last
       return unless last_item && last_item[:content]
@@ -88,12 +171,20 @@ module Substack
       end
     end
 
+    # Add a YouTube video to the post
+    #
+    # @param video_id [String] The YouTube video ID
+    # @return [void]
     def youtube(video_id)
       last_item = @draft_body[:content].last
       last_item[:attrs] ||= {}
       last_item[:attrs][:videoId] = video_id
     end
 
+    # Add a subscription widget with a caption
+    #
+    # @param message [String, nil] The caption message
+    # @return [void]
     def subscribe_with_caption(message: nil)
       message ||= "Thanks for reading this newsletter! Subscribe for free to receive new posts and support my work."
       add(
@@ -103,6 +194,9 @@ module Substack
       )
     end
 
+    # Get the draft post data for submission to the API
+    #
+    # @return [Hash] The complete draft post data
     def get_draft
       {
         draft_title: @draft_title,

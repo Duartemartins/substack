@@ -1,8 +1,8 @@
-# filepath: /Users/duartemartins/Library/Mobile Documents/com~apple~CloudDocs/Code/Python/substack/substack_api/test/client_test.rb
 require_relative 'test_helper'
 
 class ClientTest < Minitest::Test
   def setup
+    # Use stub authentication methods from test_client.rb
     @client = Substack::Client.new(email: 'test@example.com', password: 'password')
   end
 
@@ -11,18 +11,20 @@ class ClientTest < Minitest::Test
   end
 
   def test_get_user_id
-    @client.stubs(:get_user_id).returns(123)
+    @client.stubs(:get_user_profile).returns({"id" => 123})
     user_id = @client.get_user_id
     assert_equal 123, user_id
   end
 
   def test_post_draft
+    # Stub out all the methods we'd call
     post = Substack::Post.new(title: 'Test Title', subtitle: 'Test Subtitle', user_id: 123)
     post.paragraph('This is a test paragraph.')
-    draft = post.get_draft
-
-    @client.stubs(:post_draft).returns({ success: true })
-    response = @client.post_draft(draft)
-    assert_equal({ success: true }, response)
+    
+    @client.stubs(:determine_primary_publication_url).returns("https://test.substack.com/api/v1")
+    @client.stubs(:request).returns({"id" => "draft123"})
+    
+    result = @client.post_draft(post.get_draft)
+    assert_equal "draft123", result["id"]
   end
 end

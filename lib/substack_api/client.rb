@@ -11,11 +11,58 @@ require "active_support/core_ext/time"
 require "zlib"
 require "stringio"
 require "logger"
+require "faraday"
+
+# Client modules
+require_relative "client/base"
+require_relative "client/api"
 
 module Substack
+  # = Client Class
+  #
+  # The main client class for interacting with the Substack API. This class combines
+  # the Base module for authentication and the API module for making API requests.
+  #
+  # == Example Usage
+  #
+  #   # Initialize with email/password
+  #   client = Substack::Client.new(email: 'your@email.com', password: 'password')
+  #
+  #   # Or use previously saved cookies
+  #   client = Substack::Client.new
+  #
+  #   # Get user profile
+  #   profile = client.get_user_profile
+  #
+  #   # Post a draft
+  #   post = Substack::Post.new(title: 'My Post', subtitle: 'Subtitle', user_id: client.get_user_id)
+  #   post.paragraph('Content goes here')
+  #   client.post_draft(post.get_draft)
+  #
+  # @see Substack::Post for creating post content
+  # @see Substack::Client::API for API methods
+  # @see Substack::Client::Base for authentication
   class Client
+    include Base
+    include API
+    
+    # @return [String] Base URL for the Substack API
+    # @return [Hash] Session data including cookies
+    # @return [String] Path to store cookies
+    # @return [String] URL for the user's primary publication API
     attr_accessor :base_url, :session, :cookies_path, :publication_url
 
+    # Initialize a new Substack client
+    #
+    # Note: This method is primarily defined in the Base module, but additional
+    # parameters specific to the main Client class are documented here.
+    #
+    # @param email [String, nil] Substack account email
+    # @param password [String, nil] Substack account password 
+    # @param cookies_path [String, nil] Path to store/load session cookies
+    # @param base_url [String, nil] Base URL for the Substack API
+    # @param publication_url [String, nil] URL for a specific publication
+    # @param debug [Boolean] Whether to output debug logs
     def initialize(email: nil, password: nil, cookies_path: nil, base_url: nil, publication_url: nil, debug: false)
       @base_url = base_url || "https://substack.com/api/v1"
       @cookies_path = cookies_path
@@ -24,7 +71,12 @@ module Substack
       @logger = Logger.new($stdout)
       @logger.level = debug ? Logger::DEBUG : Logger::WARN
 
-      # puts "Publication URL: #{@publication_url}"
+      # Skip authentication in test mode
+      if ENV['SUBSTACK_TEST_MODE'] == 'true'
+        @logger.info "Running in test mode, skipping authentication"
+        @session = {"substack.sid" => "test_session_id", "csrf-token" => "test_csrf_token"}
+        return
+      end
 
       if cookies_path && File.exist?(cookies_path)
         load_cookies(cookies_path)
@@ -37,61 +89,38 @@ module Substack
       @publication_url ||= determine_primary_publication
     end
 
-    def login(email, password)
-      options = Selenium::WebDriver::Chrome::Options.new
-      options.add_argument('--headless')
-      options.add_argument('--start-maximized')
-      options.add_argument('--user-agent=Mozilla/5.0')
-    
-      service = Selenium::WebDriver::Chrome::Service.new(path: '/usr/local/bin/chromedriver')
-      driver = Selenium::WebDriver.for :chrome, service: service, options: options
-    
-      begin
-        driver.get('https://substack.com/sign-in')
-        wait = Selenium::WebDriver::Wait.new(timeout: 20)
-    
-        email_field = wait.until { driver.find_element(name: 'email') }
-        email_field.send_keys(email)
-    
-        sign_in_button = wait.until { driver.find_element(link_text: 'Sign in with password') }
-        sign_in_button.click
-    
-        password_field = wait.until { driver.find_element(name: 'password') }
-        password_field.send_keys(password, :return)
-    
-        sleep 5
-    
-        cookies = driver.manage.all_cookies
-        File.write('substack_cookies.json', cookies.to_json)
-        puts "Cookies saved to 'substack_cookies.json'"
-      ensure
-        driver.quit
-      end
-    end
-
-    def save_cookies(path = @cookies_path)
-      File.write(path, @session.to_json) if path
-    end
-
-    def load_cookies(path)
-      raw_cookies = JSON.parse(File.read(path))
-      @session = raw_cookies.each_with_object({}) do |cookie, hash|
-        hash[cookie['name']] = cookie['value']
-      end
-    end
-
+    # Get the current user's ID
+    #
+    # @return [Integer] The user's ID
     def get_user_id
       profile = get_user_profile
       profile["id"]
     end
 
+    # Get the current user's profile information
+    #
+    # @return [Hash] The user's profile data
     def get_user_profile
-      uri = URI("#{@base_url}/user/profile/self")
-      response = get_request(uri, "user profile")
-      handle_response(response)
+      request(:get, "#{Endpoints::API}/user/profile/self")
     end
 
-    def determine_primary_publication
+    # Post a draft to Substack
+    #
+    # @param draft [Hash] The draft post content (usually from Post#get_draft)
+    # @return [Hash] The response from the API
+    # @raise [Error] If posting fails
+    def post_draft(draft)
+      # First determine the publication URL if not already set
+      publication_url = determine_primary_publication_url
+      request(:post, "#{publication_url}/drafts", json: draft)
+    end
+    
+    private
+    
+    # Determine the URL for the user's primary publication
+    #
+    # @return [String] The API URL for the user's primary publication
+    def determine_primary_publication_url
       profile = get_user_profile
       primary_pub = profile["primaryPublication"]
 
@@ -101,7 +130,11 @@ module Substack
         "https://#{primary_pub['subdomain']}.substack.com/api/v1"
       end
     end
-
+    
+    # Construct a publication URL from publication data
+    #
+    # @param publication [Hash] Publication data containing domain information
+    # @return [String] The publication URL
     def construct_publication_url(publication)
       if publication["custom_domain"]
         "https://#{publication['custom_domain']}"
@@ -109,88 +142,39 @@ module Substack
         "https://#{publication['subdomain']}.substack.com"
       end
     end
-
-    def post_draft(draft)
-      uri = URI("#{@publication_url}/api/v1/drafts")
-      # puts "Draft URI: #{uri}"
-      # puts "Draft Payload: #{JSON.pretty_generate(draft)}"
-
-      response = post_request(uri, draft)
-
-      begin
-        handle_response(response)
-      rescue RuntimeError => e
-        puts "Error while posting draft: #{e.message}"
-
-        if response.body
-          begin
-            error_details = JSON.parse(response.body)
-            if error_details["errors"]
-              error_details["errors"].each do |error|
-                puts "Error location: #{error['location']}"
-                puts "Error parameter: #{error['param']}"
-                puts "Error message: #{error['msg']}"
-              end
-            end
-          rescue JSON::ParserError
-            puts "Failed to parse error response body."
-          end
-        end
-
-        puts JSON.pretty_generate(draft)
-        raise
-      end
-    end
-
+    
+    # Retry a block of code with exponential backoff
+    #
+    # @param max_retries [Integer] Maximum number of retry attempts
+    # @param delay [Integer] Initial delay in seconds, doubles with each retry
+    # @yield The block to execute with retry logic
+    # @raise [Exception] If the block fails after all retries
     def retry_with_backoff(max_retries: 3, delay: 1)
       attempts = 0
       begin
         attempts += 1
-        puts "Attempt #{attempts} of #{max_retries}"
+        @logger.debug "Attempt #{attempts} of #{max_retries}"
         yield
       rescue => e
         if attempts < max_retries
           sleep_time = delay * (2 ** (attempts - 1))
-          puts "Error: #{e.message}. Retrying in #{sleep_time}s..."
+          @logger.debug "Error: #{e.message}. Retrying in #{sleep_time}s..."
           sleep(sleep_time)
           retry
         else
-          puts "Max retries (#{max_retries}) reached. Final error: #{e.message}"
+          @logger.error "Max retries (#{max_retries}) reached. Final error: #{e.message}"
           raise
         end
       end
     end
-
-    # def prepublish_draft(draft_id)
-    #   uri = URI("#{@publication_url}/api/v1/drafts/#{draft_id}/prepublish")
-    #   response = get_request(uri, "prepublish draft")
-
-    #   # puts "Prepublish Draft Response Code: #{response.code}"
-    #   # puts "Prepublish Draft Response Body: #{response.body}"
-
-    #   begin
-    #     handle_response(response)
-    #   rescue => e
-    #     puts "Prepublish error: #{e.message}"
-    #     puts "Response Headers: #{response.each_header.to_h}"
-    #     puts "Backtrace:\n#{e.backtrace.join("\n")}"
-    #     raise
-    #   end
-    # end
-
-    # def publish_draft(draft_id, send: true, share_automatically: false)
-    #   uri = URI("#{@publication_url}/drafts/#{draft_id}/publish")
-    #   response = post_request(uri, {
-    #     "send" => send,
-    #     "share_automatically" => share_automatically
-    #   })
-    #   handle_response(response)
-    # end
-
-    private
-
+    
+    # Process a GET request to the specified URI
+    #
+    # @param uri [URI] The URI to send the request to
+    # @param name [String, nil] Optional name for debugging purposes
+    # @return [Net::HTTPResponse] The HTTP response
     def get_request(uri, name = nil)
-      # puts "initialising get request for #{name}"
+      @logger.debug "Initializing GET request for #{name || uri}"
       Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https") do |http|
         request = Net::HTTP::Get.new(uri)
         request["User-Agent"] = "ruby-requests/1.0"
@@ -200,22 +184,23 @@ module Substack
         request["Connection"] = "keep-alive"
         add_cookies(request)
 
-        # puts "GET Request URI: #{uri}"
-        # puts "Request Headers: #{request.each_header.to_h}"
-        # puts "Request Cookies: #{request['Cookie']}"
-        # puts "Request Body: #{request.body}" if request.body
-
+        @logger.debug "GET Request URI: #{uri}"
+        
         response = http.request(request)
-
-        # puts "Response Code: #{response.code}"
-        # puts "Raw Response Body (truncated): #{response.body[0..100]}..." if response.body.length > 100
-
+        @logger.debug "Response Code: #{response.code}"
+        
         response
       end
     end
 
+    # Process a POST request to the specified URI with a JSON body
+    #
+    # @param uri [URI] The URI to send the request to
+    # @param body [Hash] The body to send as JSON
+    # @return [Net::HTTPResponse] The HTTP response
+    # @raise [Exception] If the request fails
     def post_request(uri, body)
-      puts "POST Request URL: #{uri}"
+      @logger.debug "POST Request URL: #{uri}"
       Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https") do |http|
         request = Net::HTTP::Post.new(uri)
         add_cookies(request)
@@ -224,16 +209,25 @@ module Substack
         http.request(request)
       end
     rescue => e
-      puts "Exception raised during POST: #{e.message}"
-      puts "Backtrace:\n#{e.backtrace.join("\n")}"
+      @logger.error "Exception raised during POST: #{e.message}"
+      @logger.debug "Backtrace:\n#{e.backtrace.join("\n")}"
       raise
     end
 
+    # Add session cookies to the HTTP request
+    #
+    # @param request [Net::HTTPRequest] The HTTP request to add cookies to
+    # @return [void]
     def add_cookies(request)
       cookies = @session.map { |key, value| "#{key}=#{value}" }.join("; ")
       request["Cookie"] = cookies unless cookies.empty?
     end
 
+    # Process the HTTP response, handling gzip compression and JSON parsing
+    #
+    # @param response [Net::HTTPResponse] The HTTP response to process
+    # @return [Hash] The parsed JSON response body
+    # @raise [JSON::ParserError] If the response body is not valid JSON
     def handle_response(response)
       if response["content-encoding"] == "gzip"
         begin
@@ -242,7 +236,7 @@ module Substack
           gz.close
           response.define_singleton_method(:body) { decompressed_body }
         rescue => e
-          puts "Error decompressing gzip response: #{e.message}"
+          @logger.error "Error decompressing gzip response: #{e.message}"
           raise
         end
       end
@@ -250,12 +244,11 @@ module Substack
       begin
         parsed_body = JSON.parse(response.body)
       rescue JSON::ParserError => e
-        puts "JSON Parsing Error: #{e.message}"
-        puts "Raw Response Body: #{response.body}"
+        @logger.error "JSON Parsing Error: #{e.message}"
+        @logger.debug "Raw Response Body: #{response.body}"
         raise
       end
 
-      # puts "Parsed Response Body: #{parsed_body[0..50]}"
       parsed_body
     end
   end

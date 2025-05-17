@@ -1,0 +1,8 @@
+lib/substack.rb ddf79db1089792eb74ba21f9878b7fa81da5c623
+lib/substack_api/post.rb a1078557349896775d400951ec8bd622ca5a8c3d
+lib/substack_api/client.rb 2d0452cd8d3d961e0b0029467f3ec3a6694a5c01
+lib/substack_api/errors.rb 86eb767c60d5ce113dbd97affcb5a9108b86274d
+lib/substack_api/version.rb 1e4779bc677153312160809b7d7eff6bed4294f3
+lib/substack_api/endpoints.rb ecbf81965c633ff0bdea3a26500f56b262b7fd38
+lib/substack_api/client/api.rb e3753ee4cc2882a8a81593499f73b2d9f756138d
+lib/substack_api/client/base.rb c163916b2bb2737bff494591d611ba26a0522f09

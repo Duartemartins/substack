@@ -7,9 +7,11 @@ gem 'net-http', '~> 0.3'
 gem 'json', '~> 2.0'
 gem 'activesupport', '~> 7.0'
 gem 'logger', '~> 1.5'
+gem 'faraday', '~> 2.0'
 
 group :development, :test do
   gem 'minitest'
   gem 'minitest-reporters'
   gem 'mocha'
+  gem 'rake'
 end

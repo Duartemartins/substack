@@ -186,11 +186,11 @@ module Substack
     # @param message [String, nil] The caption message
     # @return [void]
     def subscribe_with_caption(message: nil)
-      message ||= "Thanks for reading this newsletter! Subscribe for free to receive new posts and support my work."
+      # The message parameter is not actually used in the current implementation
+      # as the caption is added in the front-end by Substack
       add(
         type: "subscribeWidget",
-        attrs: { url: "%%checkout_url%%", text: "Subscribe", language: "en" },
-        content: [{ type: "ctaCaption", content: [{ type: "text", text: message }] }]
+        attrs: { url: "%%checkout_url%%", text: "Subscribe", language: "en" }
       )
     end
 

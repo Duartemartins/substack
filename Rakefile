@@ -7,6 +7,13 @@ Rake::TestTask.new(:test) do |t|
   t.test_files = FileList['test/**/*_test.rb']
 end
 
+desc 'Run tests with coverage analysis'
+task :coverage do
+  ENV['COVERAGE'] = 'true'
+  Rake::Task['test'].invoke
+  sh 'open coverage/index.html' if File.exist?('coverage/index.html')
+end
+
 desc 'Run tests'
 task default: :test
 

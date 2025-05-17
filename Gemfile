@@ -14,4 +14,5 @@ group :development, :test do
   gem 'minitest-reporters'
   gem 'mocha'
   gem 'rake'
+  gem 'simplecov', require: false
 end

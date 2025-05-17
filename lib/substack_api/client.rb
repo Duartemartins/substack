@@ -91,10 +91,10 @@ module Substack
 
     # Get the current user's ID
     #
-    # @return [Integer] The user's ID
+    # @return [Integer, nil] The user's ID or nil if not available
     def get_user_id
       profile = get_user_profile
-      profile["id"]
+      profile && profile["id"]
     end
 
     # Get the current user's profile information
@@ -107,12 +107,13 @@ module Substack
     # Post a draft to Substack
     #
     # @param draft [Hash] The draft post content (usually from Post#get_draft)
+    # @param publication_url [String, nil] Optional custom publication URL
     # @return [Hash] The response from the API
     # @raise [Error] If posting fails
-    def post_draft(draft)
-      # First determine the publication URL if not already set
-      publication_url = determine_primary_publication_url
-      request(:post, "#{publication_url}/drafts", json: draft)
+    def post_draft(draft, publication_url: nil)
+      # Use provided publication URL or determine the primary one
+      pub_url = publication_url || determine_primary_publication_url
+      request(:post, "#{pub_url}/drafts", json: draft)
     end
     
     private

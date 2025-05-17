@@ -242,8 +242,13 @@ module Substack
         end
       end
 
+      # If response body is already a Hash or Array (parsed by Faraday middleware)
+      if response.body.is_a?(Hash) || response.body.is_a?(Array)
+        return response.body
+      end
+
       begin
-        parsed_body = JSON.parse(response.body)
+        parsed_body = JSON.parse(response.body.to_s)
       rescue JSON::ParserError => e
         @logger.error "JSON Parsing Error: #{e.message}"
         @logger.debug "Raw Response Body: #{response.body}"

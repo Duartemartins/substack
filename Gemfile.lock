@@ -59,6 +59,9 @@ GEM
       simplecov-html (~> 0.11)
       simplecov_json_formatter (~> 0.1)
     simplecov-html (0.13.1)
+    simplecov-json (0.2.3)
+      json
+      simplecov
     simplecov_json_formatter (0.1.4)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
@@ -81,6 +84,7 @@ DEPENDENCIES
   rake
   selenium-webdriver (~> 4.0)
   simplecov
+  simplecov-json (~> 0.2.3)
 
 RUBY VERSION
    ruby 3.3.0p0

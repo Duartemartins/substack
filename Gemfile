@@ -16,3 +16,4 @@ group :development, :test do
   gem 'rake'
   gem 'simplecov', require: false
 end
+gem "simplecov-json", "~> 0.2.3", :groups => [:test, :development]

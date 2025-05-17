@@ -7,6 +7,36 @@ Rake::TestTask.new(:test) do |t|
   t.test_files = FileList['test/**/*_test.rb']
 end
 
+desc 'Run all tests with cumulative coverage analysis'
+task :full_coverage do
+  ENV['COVERAGE'] = 'true'
+  # Run all test files individually and gather their coverage results
+  test_files = FileList['test/**/*_test.rb'].to_a
+  puts "Running #{test_files.length} test files with coverage:"
+  
+  # For better output formatting
+  success = true
+  test_files.each do |file|
+    puts "\n#{'-' * 80}"
+    puts "Running: #{file}"
+    puts "#{'-' * 80}"
+    command = "ruby -I lib:test #{file}"
+    unless system(command)
+      puts "Errors in #{file}"
+      success = false
+    end
+  end
+  
+  puts "\n#{'-' * 80}"
+  puts "All tests completed. #{success ? 'Success!' : 'Some tests failed!'}"
+  puts "#{'-' * 80}"
+  
+  if File.exist?('coverage/index.html')
+    puts "Opening coverage report..."
+    sh 'open coverage/index.html'
+  end
+end
+
 desc 'Run tests with coverage analysis'
 task :coverage do
   ENV['COVERAGE'] = 'true'

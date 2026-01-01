@@ -47,6 +47,26 @@ end
 desc 'Run tests'
 task default: :test
 
+desc 'Run stable tests (excluding tests with known issues)'
+Rake::TestTask.new(:stable_test) do |t|
+  t.libs << 'test'
+  t.libs << 'lib'
+  t.test_files = FileList[
+    'test/error_test.rb',
+    'test/error_complete_test.rb',
+    'test/post_test.rb',
+    'test/endpoints_test.rb',
+    'test/client_base_comprehensive_test.rb',
+    'test/documentation_test.rb',
+    'test/image_test.rb',
+    'test/client_auth_test.rb',
+    'test/edge_case_test.rb',
+    'test/api_comprehensive_test.rb',
+    'test/captcha_error_test.rb',
+    'test/client_comprehensive_test.rb'
+  ]
+end
+
 begin
   require 'rdoc/task'
 

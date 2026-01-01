@@ -7,7 +7,7 @@ class ClientTest < Minitest::Test
   end
 
 
-  def test_determine_primary_publication_url_with_custom_domain
+  def test_determine_primary_publication_url_custom_domain
     @client.stubs(:get_user_profile).returns({
       "primaryPublication" => {
         "custom_domain" => "example.com"
@@ -18,7 +18,7 @@ class ClientTest < Minitest::Test
     assert_equal "https://example.com/api/v1", url
   end
 
-  def test_determine_primary_publication_url_with_subdomain
+  def test_determine_primary_publication_url_subdomain
     @client.stubs(:get_user_profile).returns({
       "primaryPublication" => {
         "subdomain" => "example"
@@ -213,32 +213,23 @@ class ClientTest < Minitest::Test
   def test_handle_response_with_successful_gzip
     client = Substack::Client.new(email: 'test@example.com', password: 'password')
     
-    # Create a mock response with gzipped content
-    mock_response = mock('response')
-    mock_response.stubs(:status).returns(200)
-    mock_response.stubs(:[]).with("content-encoding").returns("gzip")
-    
-    # The original body (gzipped)
-    gzipped_body = "gzipped data"
-    mock_response.stubs(:body).returns(gzipped_body)
-    
-    # Mock the StringIO and GzipReader
-    mock_io = mock('stringio')
-    mock_gz = mock('gzipreader')
-    
-    StringIO.expects(:new).with(gzipped_body).returns(mock_io)
-    Zlib::GzipReader.expects(:new).with(mock_io).returns(mock_gz)
-    
-    # The decompressed data
+    # Create actual gzipped JSON content
     json_data = '{"key":"value"}'
-    mock_gz.expects(:read).returns(json_data)
-    mock_gz.expects(:close)
+    io = StringIO.new
+    gz = Zlib::GzipWriter.new(io)
+    gz.write(json_data)
+    gz.close
+    gzipped_body = io.string
     
-    # Define a singleton method on the response to return the decompressed body
-    mock_response.expects(:define_singleton_method).with(:body).yields.returns(json_data)
+    # Create a response object that behaves properly
+    response_obj = Object.new
+    response_obj.define_singleton_method(:status) { 200 }
+    response_obj.define_singleton_method(:[]) { |key| key == "content-encoding" ? "gzip" : nil }
+    response_obj.define_singleton_method(:body) { gzipped_body }
+    response_obj.define_singleton_method(:respond_to?) { |method| [:status, :[], :body, :define_singleton_method].include?(method) }
     
     # Call handle_response
-    result = client.send(:handle_response, mock_response)
+    result = client.send(:handle_response, response_obj)
     
     # Verify the body was parsed
     assert_equal({"key" => "value"}, result)
@@ -262,7 +253,7 @@ class ClientTest < Minitest::Test
     end
   end
   
-  def test_determine_primary_publication_url
+  def test_determine_primary_publication_url_nil_custom_domain
     client = Substack::Client.new(email: 'test@example.com', password: 'password')
     
     # Mock get_user_profile to return a profile with a primary publication
@@ -280,7 +271,7 @@ class ClientTest < Minitest::Test
     assert_equal "https://testblog.substack.com/api/v1", url
   end
   
-  def test_determine_primary_publication_url_with_custom_domain
+  def test_determine_primary_publication_url_has_custom_domain
     client = Substack::Client.new(email: 'test@example.com', password: 'password')
     
     # Mock get_user_profile to return a profile with a primary publication with custom domain

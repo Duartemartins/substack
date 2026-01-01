@@ -1,8 +1,10 @@
-require 'simplecov'
-SimpleCov.start do
-  add_filter '/test/'  # Don't include test files in coverage
-  add_group 'Client', 'lib/substack_api/client'
-  add_group 'Core', 'lib/substack_api'
+if ENV['COVERAGE'] != 'false'
+  require 'simplecov'
+  SimpleCov.start do
+    add_filter '/test/'  # Don't include test files in coverage
+    add_group 'Client', 'lib/substack_api/client'
+    add_group 'Core', 'lib/substack_api'
+  end
 end
 
 require 'minitest/autorun'

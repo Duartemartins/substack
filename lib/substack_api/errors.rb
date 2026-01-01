@@ -23,6 +23,75 @@ module Substack
   # but not available.
   class AuthenticationError < Error; end
   
+  # Raised when a CAPTCHA challenge is detected during authentication.
+  # This error includes information about the CAPTCHA type and provides
+  # guidance on how to handle it.
+  #
+  # @attr_reader captcha_type [String] The type of CAPTCHA detected (hcaptcha, recaptcha, cloudflare)
+  # @attr_reader can_retry [Boolean] Whether the operation can be retried with manual intervention
+  #
+  # @example Handling CAPTCHA errors
+  #   begin
+  #     client.login(email, password)
+  #   rescue Substack::CaptchaRequiredError => e
+  #     puts "CAPTCHA detected: #{e.captcha_type}"
+  #     if e.can_retry
+  #       # Retry with headless: false to allow manual solving
+  #       client.login(email, password, headless: false)
+  #     end
+  #   end
+  class CaptchaRequiredError < AuthenticationError
+    attr_reader :captcha_type, :can_retry
+    
+    # CAPTCHA element selectors for different providers
+    CAPTCHA_SELECTORS = {
+      hcaptcha: ['iframe[src*="hcaptcha"]', '.h-captcha', '#hcaptcha'],
+      recaptcha: ['iframe[src*="recaptcha"]', '.g-recaptcha', '#recaptcha'],
+      cloudflare: ['#cf-challenge-running', '.cf-browser-verification', '#challenge-form', 'iframe[src*="challenges.cloudflare"]']
+    }.freeze
+    
+    # Initialize a new CAPTCHA error
+    #
+    # @param message [String, nil] Error message
+    # @param captcha_type [String] The type of CAPTCHA detected
+    # @param can_retry [Boolean] Whether the operation can be retried
+    def initialize(message = nil, captcha_type: 'unknown', can_retry: true)
+      @captcha_type = captcha_type
+      @can_retry = can_retry
+      super(message || default_message)
+    end
+    
+    # Generate a default error message based on the CAPTCHA type
+    #
+    # @return [String] A descriptive error message with guidance
+    def default_message
+      base_msg = "CAPTCHA verification required (type: #{@captcha_type})"
+      if @can_retry
+        "#{base_msg}. Retry with headless: false to solve manually."
+      else
+        base_msg
+      end
+    end
+    
+    # Check if a page contains a CAPTCHA challenge
+    #
+    # @param driver [Selenium::WebDriver] The Selenium WebDriver instance
+    # @return [String, nil] The type of CAPTCHA detected, or nil if none found
+    def self.detect_captcha(driver)
+      CAPTCHA_SELECTORS.each do |captcha_type, selectors|
+        selectors.each do |selector|
+          begin
+            element = driver.find_element(css: selector)
+            return captcha_type.to_s if element
+          rescue Selenium::WebDriver::Error::NoSuchElementError
+            # Element not found, continue checking
+          end
+        end
+      end
+      nil
+    end
+  end
+  
   # General API response error with status code and error details.
   # This is the parent class for more specific API errors.
   #
@@ -71,7 +140,7 @@ module Substack
     #
     # @return [String] Formatted error details
     def error_details
-      return "No validation errors" unless @errors && @errors.is_a?(Array)
+      return "No validation errors" unless @errors && @errors.is_a?(Array) && !@errors.empty?
       
       @errors.map do |err|
         "#{err['location']} #{err['param']}: #{err['msg']}"

@@ -68,4 +68,130 @@ class ErrorCompleteTest < Minitest::Test
       assert_equal "Test message", error.message
     end
   end
+  
+  # CaptchaRequiredError Tests
+  def test_captcha_required_error_basic
+    error = Substack::CaptchaRequiredError.new("CAPTCHA required")
+    assert_instance_of Substack::CaptchaRequiredError, error
+    assert_equal "CAPTCHA required", error.message
+    assert_equal 'unknown', error.captcha_type
+    assert_equal true, error.can_retry
+  end
+  
+  def test_captcha_required_error_with_type
+    error = Substack::CaptchaRequiredError.new(captcha_type: 'hcaptcha')
+    assert_equal 'hcaptcha', error.captcha_type
+    assert_includes error.message, 'hcaptcha'
+  end
+  
+  def test_captcha_required_error_with_recaptcha
+    error = Substack::CaptchaRequiredError.new(captcha_type: 'recaptcha')
+    assert_equal 'recaptcha', error.captcha_type
+    assert_includes error.message, 'recaptcha'
+  end
+  
+  def test_captcha_required_error_with_cloudflare
+    error = Substack::CaptchaRequiredError.new(captcha_type: 'cloudflare')
+    assert_equal 'cloudflare', error.captcha_type
+    assert_includes error.message, 'cloudflare'
+  end
+  
+  def test_captcha_required_error_can_retry_true
+    error = Substack::CaptchaRequiredError.new(can_retry: true)
+    assert_equal true, error.can_retry
+    assert_includes error.message, 'Retry with headless: false'
+  end
+  
+  def test_captcha_required_error_can_retry_false
+    error = Substack::CaptchaRequiredError.new(can_retry: false)
+    assert_equal false, error.can_retry
+    refute_includes error.message, 'Retry with headless: false'
+  end
+  
+  def test_captcha_required_error_default_message
+    error = Substack::CaptchaRequiredError.new(captcha_type: 'hcaptcha', can_retry: true)
+    expected = "CAPTCHA verification required (type: hcaptcha). Retry with headless: false to solve manually."
+    assert_equal expected, error.message
+  end
+  
+  def test_captcha_required_error_default_message_no_retry
+    error = Substack::CaptchaRequiredError.new(captcha_type: 'cloudflare', can_retry: false)
+    expected = "CAPTCHA verification required (type: cloudflare)"
+    assert_equal expected, error.message
+  end
+  
+  def test_captcha_required_error_inherits_from_authentication_error
+    assert Substack::CaptchaRequiredError.ancestors.include?(Substack::AuthenticationError)
+    assert Substack::CaptchaRequiredError.ancestors.include?(Substack::Error)
+  end
+  
+  def test_captcha_required_error_selectors_constant
+    selectors = Substack::CaptchaRequiredError::CAPTCHA_SELECTORS
+    
+    assert selectors.key?(:hcaptcha)
+    assert selectors.key?(:recaptcha)
+    assert selectors.key?(:cloudflare)
+    
+    assert_includes selectors[:hcaptcha], 'iframe[src*="hcaptcha"]'
+    assert_includes selectors[:recaptcha], 'iframe[src*="recaptcha"]'
+    assert_includes selectors[:cloudflare], '#cf-challenge-running'
+  end
+  
+  def test_captcha_detect_no_captcha
+    mock_driver = mock('driver')
+    
+    # Stub find_element to always raise NoSuchElementError (no CAPTCHA found)
+    Substack::CaptchaRequiredError::CAPTCHA_SELECTORS.values.flatten.each do |selector|
+      mock_driver.stubs(:find_element).with(css: selector).raises(Selenium::WebDriver::Error::NoSuchElementError)
+    end
+    
+    result = Substack::CaptchaRequiredError.detect_captcha(mock_driver)
+    assert_nil result
+  end
+  
+  def test_captcha_detect_hcaptcha
+    mock_driver = mock('driver')
+    mock_element = mock('element')
+    
+    # First selector for hcaptcha should return an element
+    mock_driver.stubs(:find_element).with(css: 'iframe[src*="hcaptcha"]').returns(mock_element)
+    
+    result = Substack::CaptchaRequiredError.detect_captcha(mock_driver)
+    assert_equal 'hcaptcha', result
+  end
+  
+  def test_captcha_detect_recaptcha
+    mock_driver = mock('driver')
+    mock_element = mock('element')
+    
+    # hcaptcha selectors should fail
+    Substack::CaptchaRequiredError::CAPTCHA_SELECTORS[:hcaptcha].each do |selector|
+      mock_driver.stubs(:find_element).with(css: selector).raises(Selenium::WebDriver::Error::NoSuchElementError)
+    end
+    
+    # First recaptcha selector should succeed
+    mock_driver.stubs(:find_element).with(css: 'iframe[src*="recaptcha"]').returns(mock_element)
+    
+    result = Substack::CaptchaRequiredError.detect_captcha(mock_driver)
+    assert_equal 'recaptcha', result
+  end
+  
+  def test_captcha_detect_cloudflare
+    mock_driver = mock('driver')
+    mock_element = mock('element')
+    
+    # hcaptcha and recaptcha selectors should fail
+    Substack::CaptchaRequiredError::CAPTCHA_SELECTORS[:hcaptcha].each do |selector|
+      mock_driver.stubs(:find_element).with(css: selector).raises(Selenium::WebDriver::Error::NoSuchElementError)
+    end
+    Substack::CaptchaRequiredError::CAPTCHA_SELECTORS[:recaptcha].each do |selector|
+      mock_driver.stubs(:find_element).with(css: selector).raises(Selenium::WebDriver::Error::NoSuchElementError)
+    end
+    
+    # First cloudflare selector should succeed
+    mock_driver.stubs(:find_element).with(css: '#cf-challenge-running').returns(mock_element)
+    
+    result = Substack::CaptchaRequiredError.detect_captcha(mock_driver)
+    assert_equal 'cloudflare', result
+  end
 end

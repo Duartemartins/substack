@@ -1,5 +1,7 @@
 # Substack Ruby Gem
 
+![Coverage](https://img.shields.io/badge/coverage-77.61%25-yellow)
+
 This is a reverse-engineered Ruby wrapper for the Substack API. Please note that this project is not officially supported by Substack and is in extremely early stages of development. As such, it is likely to be buggy and incomplete.
 
 ## Current Functionality

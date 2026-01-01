@@ -224,13 +224,42 @@ module Substack
       request["Cookie"] = cookies unless cookies.empty?
     end
 
-    # Process the HTTP response, handling gzip compression and JSON parsing
+    # Process the HTTP response, handling status codes, gzip compression and JSON parsing
     #
-    # @param response [Net::HTTPResponse] The HTTP response to process
+    # @param response [Net::HTTPResponse, Faraday::Response] The HTTP response to process
     # @return [Hash] The parsed JSON response body
+    # @raise [AuthenticationError] If authentication fails (401, 403)
+    # @raise [NotFoundError] If resource not found (404)
+    # @raise [ValidationError] If validation fails (422)
+    # @raise [RateLimitError] If rate limited (429)
+    # @raise [APIError] For other client/server errors
     # @raise [JSON::ParserError] If the response body is not valid JSON
     def handle_response(response)
-      if response["content-encoding"] == "gzip"
+      # Get status code (works for both Net::HTTPResponse and Faraday::Response)
+      status = response.respond_to?(:status) ? response.status : response.code.to_i
+      
+      # Check for error status codes first
+      case status
+      when 401, 403
+        raise AuthenticationError, "Authentication failed (HTTP #{status})"
+      when 404
+        raise NotFoundError.new(nil, status: status)
+      when 422
+        # Validation errors - need to parse body first
+        body = extract_response_body(response)
+        parsed_body = body.is_a?(Hash) ? body : (JSON.parse(body.to_s) rescue {})
+        errors = parsed_body['errors'] || []
+        raise ValidationError.new(nil, status: status, errors: errors)
+      when 429
+        raise RateLimitError.new("Rate limit exceeded", status: status)
+      when 400..499
+        raise APIError.new("Client error", status: status)
+      when 500..599
+        raise APIError.new("Server error", status: status)
+      end
+      
+      # Handle gzip compression for Net::HTTPResponse
+      if response.respond_to?(:[]) && response["content-encoding"] == "gzip"
         begin
           gz = Zlib::GzipReader.new(StringIO.new(response.body))
           decompressed_body = gz.read
@@ -256,6 +285,26 @@ module Substack
       end
 
       parsed_body
+    end
+    
+    # Extract response body, handling gzip if needed
+    # @param response [Net::HTTPResponse, Faraday::Response] The response
+    # @return [String, Hash, Array] The response body
+    def extract_response_body(response)
+      body = response.body
+      
+      # Handle gzip for Net::HTTPResponse during error extraction
+      if response.respond_to?(:[]) && response["content-encoding"] == "gzip" && body.is_a?(String)
+        begin
+          gz = Zlib::GzipReader.new(StringIO.new(body))
+          body = gz.read
+          gz.close
+        rescue
+          # If decompression fails, use original body
+        end
+      end
+      
+      body
     end
   end
 end
